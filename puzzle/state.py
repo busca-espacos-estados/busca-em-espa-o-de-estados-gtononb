@@ -25,19 +25,69 @@ class State:
         return self.tiles.index(0)
 
     def neighbors(self) -> List["State"]:
-        """Retorna os estados filhos válidos a partir deste estado."""
-        # TODO: implemente a geração de estados filhos
-        raise NotImplementedError
+        """Retorna os estados filhos válidos a partir deste estado.
+
+        O tabuleiro é tratado como uma grade 3x3 (linha = índice // 3,
+        coluna = índice % 3). Para cada movimento possível do espaço vazio
+        (cima, baixo, esquerda, direita) que não sai da grade, gera um novo
+        estado trocando o espaço vazio com a peça vizinha.
+
+        A ação é nomeada pela direção do MOVIMENTO DA PEÇA (não do espaço
+        vazio), pois é assim que normalmente se descreve a jogada: "mover a
+        peça de baixo para cima" equivale a "Up" quando o espaço sobe.
+        """
+        moves = {
+            "Up": -3,
+            "Down": 3,
+            "Left": -1,
+            "Right": 1,
+        }
+
+        row, col = divmod(self.blank_index, 3)
+        children: List["State"] = []
+
+        for action, delta in moves.items():
+            new_index = self.blank_index + delta
+
+            # valida limites da grade conforme a direção
+            if action == "Up" and row == 0:
+                continue
+            if action == "Down" and row == 2:
+                continue
+            if action == "Left" and col == 0:
+                continue
+            if action == "Right" and col == 2:
+                continue
+
+            new_tiles = list(self.tiles)
+            new_tiles[self.blank_index], new_tiles[new_index] = (
+                new_tiles[new_index],
+                new_tiles[self.blank_index],
+            )
+
+            child = State(
+                tuple(new_tiles),
+                parent=self,
+                action=action,
+                cost=self.cost + 1,
+            )
+            children.append(child)
+
+        return children
 
     def path(self) -> List["State"]:
         """Retorna a sequência de estados do estado inicial até este."""
-        # TODO: implemente a reconstrução do caminho usando self.parent
-        raise NotImplementedError
+        states: List["State"] = []
+        current: Optional["State"] = self
+        while current is not None:
+            states.append(current)
+            current = current.parent
+        states.reverse()
+        return states
 
     def actions(self) -> List[str]:
         """Retorna a sequência de ações do estado inicial até este."""
-        # TODO: implemente usando path()
-        raise NotImplementedError
+        return [state.action for state in self.path() if state.action is not None]
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, State) and self.tiles == other.tiles
